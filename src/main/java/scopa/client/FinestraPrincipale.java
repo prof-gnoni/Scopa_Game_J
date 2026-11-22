@@ -84,7 +84,7 @@ public class FinestraPrincipale extends JFrame {
 
         if (sceltaModalita == 1) {
             // === MODALITÀ MULTIPLAYER ONLINE ===
-            String[] opzioniOnline = {"Ospita partita (avvia il server qui)", "Unisciti a una partita (inserisci l'IP)"};
+            String[] opzioniOnline = {"Ospita partita (avvia il server qui)", "Unisciti a una partita (inserisci l'indirizzo IP)"};
 
             int sceltaOnline = FinestraDialogo.scegliOpzione(this,
                     "MULTIPLAYER ONLINE\n\nVuoi ospitare la partita o unirti a quella di un amico?",
@@ -162,7 +162,7 @@ public class FinestraPrincipale extends JFrame {
 
     private void uniscitiAPartita() {
         String ipServer = JOptionPane.showInputDialog(this,
-                "Inserisci l'IP o l'indirizzo del Server:",
+                "Inserisci l'indirizzo IP o il nome del Server:",
                 "Connessione Multiplayer",
                 JOptionPane.QUESTION_MESSAGE);
 
