@@ -8,13 +8,22 @@ public class CalcolatorePunti {
     private static final int[] VALORI_PRIMIERA = { 0, 16, 12, 13, 14, 15, 18, 21, 10, 10, 10 };
 
     public static String calcolaEGeneraResoconto(Giocatore umano, Giocatore bot, boolean partitaVeloce) {
+        return calcolaEGeneraResoconto(umano, bot, partitaVeloce, "Computer", "al Computer");
+    }
+
+    /**
+     * @param nomeAvversario       es. "Computer" o "Avversario"
+     * @param aNomeAvversario      es. "al Computer" o "all'Avversario"
+     */
+    public static String calcolaEGeneraResoconto(Giocatore umano, Giocatore bot, boolean partitaVeloce,
+                                                 String nomeAvversario, String aNomeAvversario) {
         StringBuilder report = new StringBuilder();
         int puntiManoUmano = umano.getScope();
         int puntiManoBot = bot.getScope();
 
         report.append("--- RIASSUNTO DELLA MANO ---\n\n");
         if (puntiManoUmano > 0 || puntiManoBot > 0) {
-            report.append("Scope: Tu ").append(puntiManoUmano).append(" - ").append(puntiManoBot).append(" Computer\n");
+            report.append("Scope: Tu ").append(puntiManoUmano).append(" - ").append(puntiManoBot).append(" ").append(nomeAvversario).append("\n");
         }
 
         if (umano.getPrese().size() > 20) {
@@ -22,7 +31,7 @@ public class CalcolatorePunti {
             report.append("Carte (").append(umano.getPrese().size()).append("): +1 a Te\n");
         } else if (bot.getPrese().size() > 20) {
             puntiManoBot++;
-            report.append("Carte (").append(bot.getPrese().size()).append("): +1 al Computer\n");
+            report.append("Carte (").append(bot.getPrese().size()).append("): +1 ").append(aNomeAvversario).append("\n");
         } else {
             report.append("Carte: Patta (").append(umano.getPrese().size())
                     .append(" a ").append(bot.getPrese().size()).append(")\n");
@@ -35,7 +44,7 @@ public class CalcolatorePunti {
             report.append("Denari (").append(denariUmano).append("): +1 a Te\n");
         } else if (denariBot > 5) {
             puntiManoBot++;
-            report.append("Denari (").append(denariBot).append("): +1 al Computer\n");
+            report.append("Denari (").append(denariBot).append("): +1 ").append(aNomeAvversario).append("\n");
         } else {
             report.append("Denari: Patta\n");
         }
@@ -45,7 +54,7 @@ public class CalcolatorePunti {
             report.append("Settebello: +1 a Te\n");
         } else if (haSettebello(bot.getPrese())) {
             puntiManoBot++;
-            report.append("Settebello: +1 al Computer\n");
+            report.append("Settebello: +1 ").append(aNomeAvversario).append("\n");
         } else {
             // Nessuno lo ha preso (es. rimasto a terra senza un ultimo a prendere)
             report.append("Settebello: non assegnato\n");
@@ -58,7 +67,7 @@ public class CalcolatorePunti {
             report.append("Primiera (").append(primieraUmano).append(" a ").append(primieraBot).append("): +1 a Te\n");
         } else if (primieraBot > primieraUmano) {
             puntiManoBot++;
-            report.append("Primiera (").append(primieraBot).append(" a ").append(primieraUmano).append("): +1 al Computer\n");
+            report.append("Primiera (").append(primieraBot).append(" a ").append(primieraUmano).append("): +1 ").append(aNomeAvversario).append("\n");
         } else {
             report.append("Primiera: Patta\n");
         }
@@ -73,7 +82,7 @@ public class CalcolatorePunti {
             report.append("PUNTEGGIO TOTALE (Vince chi arriva a 11)\n");
         }
         report.append("TU: ").append(umano.getPuntiGlobali()).append("\n");
-        report.append("COMPUTER: ").append(bot.getPuntiGlobali()).append("\n");
+        report.append(nomeAvversario.toUpperCase()).append(": ").append(bot.getPuntiGlobali()).append("\n");
 
         return report.toString();
     }

@@ -4,11 +4,11 @@ import java.io.*;
 import java.net.*;
 
 public class ClientRete {
-    private Socket socket;
-    private PrintWriter out;
-    private BufferedReader in;
-    private ListenerRete listener;
-    private boolean inAscolto = true;
+    private final Socket socket;
+    private final PrintWriter out;
+    private final BufferedReader in;
+    private final ListenerRete listener;
+    private volatile boolean inAscolto = true;
 
     public interface ListenerRete {
         void messaggioRicevuto(String messaggio);
@@ -22,7 +22,9 @@ public class ClientRete {
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
         // Thread dedicato all'ascolto dei messaggi dal Server
-        new Thread(this::ascoltaServer).start();
+        Thread ascolto = new Thread(this::ascoltaServer, "ClientRete-ascolto");
+        ascolto.setDaemon(true);
+        ascolto.start();
     }
 
     private void ascoltaServer() {
@@ -34,8 +36,10 @@ public class ClientRete {
                 }
             }
         } catch (IOException e) {
-            if (listener != null) listener.disconnesso();
+            // Gestito sotto: la connessione è comunque persa
         }
+        // Fine del flusso (server chiuso) o errore: avvisa, a meno che non abbiamo chiuso noi
+        if (inAscolto && listener != null) listener.disconnesso();
     }
 
     public void inviaComando(String comando) {

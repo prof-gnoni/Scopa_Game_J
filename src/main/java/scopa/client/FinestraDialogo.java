@@ -14,8 +14,12 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FinestraDialogo {
+
+    private static final Logger LOG = Logger.getLogger(FinestraDialogo.class.getName());
 
     private static final Map<String, ImageIcon> cacheIcone = new HashMap<>();
     private static final int LARGHEZZA_MINIATURA_PRESA = 72;
@@ -44,6 +48,19 @@ public class FinestraDialogo {
         timer.setRepeats(false);
         timer.start();
         mostra(dialog);
+    }
+
+    // Messaggio che resta aperto senza bloccare il gioco: va chiuso con dispose()
+    public static JDialog apriMessaggioAttesa(Component parent, String messaggio) {
+        JDialog dialog = creaDialogBase(parent);
+        dialog.setModalityType(Dialog.ModalityType.MODELESS);
+        dialog.add(creaPannelloTesto(messaggio), BorderLayout.CENTER);
+        JPanel panelVuoto = new JPanel();
+        panelVuoto.setOpaque(false);
+        panelVuoto.setPreferredSize(new Dimension(10, 30));
+        dialog.add(panelVuoto, BorderLayout.SOUTH);
+        mostra(dialog);
+        return dialog;
     }
 
     public static int scegliOpzione(Component parent, String messaggio, String[] opzioni) {
@@ -113,30 +130,6 @@ public class FinestraDialogo {
             @Override public void mouseExited(java.awt.event.MouseEvent e) { btn.setBackground(sfondo); }
         });
         return btn;
-    }
-
-    public static boolean mostraDomanda(Component parent, String messaggio) {
-        JDialog dialog = creaDialogBase(parent);
-        dialog.add(creaPannelloTesto(messaggio), BorderLayout.CENTER);
-
-        final boolean[] risultato = {false};
-
-        JPanel panelBottoni = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        panelBottoni.setOpaque(false);
-
-        JButton btnSi = creaBottone("SÌ, GIOCA ANCORA");
-        btnSi.addActionListener(e -> { risultato[0] = true; dialog.dispose(); });
-
-        JButton btnNo = creaBottone("NO, ESCI");
-        btnNo.setBackground(new Color(178, 34, 34));
-        btnNo.addActionListener(e -> { risultato[0] = false; dialog.dispose(); });
-
-        panelBottoni.add(btnSi);
-        panelBottoni.add(btnNo);
-        dialog.add(panelBottoni, BorderLayout.SOUTH);
-
-        mostra(dialog);
-        return risultato[0];
     }
 
     public static boolean mostraResocontoVisuale(Component parent, String resocontoTesto, Giocatore umano, Giocatore bot, boolean partitaFinita) {
@@ -290,7 +283,9 @@ public class FinestraDialogo {
                 cacheIcone.put(chiave, icon);
                 return icon;
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "Impossibile caricare l'immagine /carte/" + c.getNomeImmagine(), e);
+        }
         return null;
     }
 

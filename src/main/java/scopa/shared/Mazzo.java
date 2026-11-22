@@ -17,6 +17,16 @@ public class Mazzo {
         }
     }
 
+    // Mazzo con un ordine già deciso (es. ricevuto dall'altro giocatore in rete)
+    public Mazzo(List<Carta> carteInOrdine) {
+        carte = new ArrayList<>(carteInOrdine);
+    }
+
+    // Copia dell'ordine attuale delle carte (l'ultima è la prossima pescata)
+    public List<Carta> getCarte() {
+        return new ArrayList<>(carte);
+    }
+
     // Mescola il mazzo
     public void mescola() {
         Collections.shuffle(carte);

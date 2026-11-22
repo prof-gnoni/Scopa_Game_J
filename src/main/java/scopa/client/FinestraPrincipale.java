@@ -1,16 +1,31 @@
 package scopa.client;
 
+import scopa.server.ServerScopa;
+
 import javax.swing.*;
+import java.io.IOException;
+import java.net.BindException;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class FinestraPrincipale extends JFrame {
 
+    private static final Logger LOG = Logger.getLogger(FinestraPrincipale.class.getName());
+
     private final TavoloVerdePanel tavolo;
+
+    // Server avviato da questa finestra quando si sceglie "Ospita partita"
+    private ServerScopa serverLocale;
 
     public FinestraPrincipale() {
         setTitle("La Scopa - Online & Singleplayer");
         setSize(1024, 768);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+
+        // Alla chiusura del gioco (finestra o System.exit) si spegne anche il server ospitato
+        Runtime.getRuntime().addShutdownHook(new Thread(this::fermaServerLocale, "ChiusuraServerLocale"));
 
         // --- MENU AUDIO E CONTROLLO VOLUME ---
         JMenuBar menuBar = new JMenuBar();
@@ -69,24 +84,19 @@ public class FinestraPrincipale extends JFrame {
 
         if (sceltaModalita == 1) {
             // === MODALITÀ MULTIPLAYER ONLINE ===
-            String ipServer = JOptionPane.showInputDialog(this,
-                    "Inserisci l'IP o l'indirizzo del Server:",
-                    "Connessione Multiplayer",
-                    JOptionPane.QUESTION_MESSAGE);
+            String[] opzioniOnline = {"Ospita partita (avvia il server qui)", "Unisciti a una partita (inserisci l'IP)"};
 
-            // Se l'utente clicca Annulla o chiude la finestra della richiesta IP
-            if (ipServer == null) {
-                avviaFlussoGioco(); // Torna indietro al menu principale
-                return;
+            int sceltaOnline = FinestraDialogo.scegliOpzione(this,
+                    "MULTIPLAYER ONLINE\n\nVuoi ospitare la partita o unirti a quella di un amico?",
+                    opzioniOnline);
+
+            if (sceltaOnline == 0) {
+                ospitaPartita();
+            } else if (sceltaOnline == 1) {
+                uniscitiAPartita();
+            } else {
+                avviaFlussoGioco();
             }
-
-            if (ipServer.trim().isEmpty()) {
-                ipServer = "localhost"; // Default per test locali se lascia vuoto
-            }
-
-            // Istanzia e connette la partita via rete
-            PartitaRete partitaOnline = new PartitaRete(tavolo, ipServer, 5555);
-            partitaOnline.connetti();
 
         } else if (sceltaModalita == 0) {
             // === MODALITÀ LOCALE (CONTRO BOT) ===
@@ -110,6 +120,74 @@ public class FinestraPrincipale extends JFrame {
             // Se chiude la finestra senza selezionare nulla
             System.exit(0);
         }
+    }
+
+    private void ospitaPartita() {
+        if (serverLocale == null || !serverLocale.isAttivo()) {
+            ServerScopa server = new ServerScopa(ServerScopa.PORTA_PREDEFINITA);
+            try {
+                server.avvia();
+                serverLocale = server;
+            } catch (BindException e) {
+                int scelta = FinestraDialogo.scegliOpzione(this,
+                        "La porta " + ServerScopa.PORTA_PREDEFINITA + " è già in uso su questo computer.\n"
+                                + "Forse un server Scopa è già acceso\n(o un'altra finestra del gioco sta ospitando).",
+                        new String[]{"Collegati al server già acceso", "Torna al menu"});
+                if (scelta == 0) {
+                    collegatiAlServer("localhost");
+                } else {
+                    avviaFlussoGioco();
+                }
+                return;
+            } catch (IOException e) {
+                LOG.log(Level.WARNING, "Impossibile avviare il server locale", e);
+                FinestraDialogo.mostraMessaggio(this, "Impossibile avviare il server:\n" + e.getMessage());
+                avviaFlussoGioco();
+                return;
+            }
+        }
+
+        List<String> indirizzi = ServerScopa.indirizziLocali();
+        String testoIndirizzi = indirizzi.isEmpty()
+                ? "Nessuna rete trovata: l'avversario può collegarsi\nsolo da questo computer (localhost)."
+                : "Comunica al tuo avversario questo indirizzo:\n" + String.join("\n", indirizzi);
+
+        FinestraDialogo.mostraMessaggio(this,
+                "SERVER AVVIATO\n\n" + testoIndirizzi
+                        + "\n\nPorta: " + serverLocale.getPorta()
+                        + "\nIl server si spegne quando chiudi il gioco.");
+
+        collegatiAlServer("localhost");
+    }
+
+    private void uniscitiAPartita() {
+        String ipServer = JOptionPane.showInputDialog(this,
+                "Inserisci l'IP o l'indirizzo del Server:",
+                "Connessione Multiplayer",
+                JOptionPane.QUESTION_MESSAGE);
+
+        // Se l'utente clicca Annulla o chiude la finestra della richiesta IP
+        if (ipServer == null) {
+            avviaFlussoGioco(); // Torna indietro al menu principale
+            return;
+        }
+
+        if (ipServer.trim().isEmpty()) {
+            ipServer = "localhost"; // Default per test locali se lascia vuoto
+        }
+
+        collegatiAlServer(ipServer.trim());
+    }
+
+    private void collegatiAlServer(String ipServer) {
+        // A fine partita online (o se la connessione cade) si torna al menu principale
+        PartitaRete partitaOnline = new PartitaRete(tavolo, ipServer, ServerScopa.PORTA_PREDEFINITA,
+                () -> SwingUtilities.invokeLater(this::avviaFlussoGioco));
+        partitaOnline.connetti();
+    }
+
+    private void fermaServerLocale() {
+        if (serverLocale != null) serverLocale.ferma();
     }
 
     public static void main(String[] args) {
