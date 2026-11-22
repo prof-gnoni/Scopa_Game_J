@@ -54,6 +54,11 @@ public class PartitaLocale {
         });
     }
 
+    // Unico metodo della classe che stampa su console
+    private void visualizza(String messaggio) {
+        System.out.println(messaggio);
+    }
+
     private List<Carta> faiScegliereAlGiocatore(List<List<Carta>> opzioni) {
         int scelta = FinestraDialogo.scegliPresa(vistaTavolo,
                 "Hai più possibilità di presa.\nQuali carte vuoi raccogliere?",
@@ -116,7 +121,7 @@ public class PartitaLocale {
 
                 if (carteAterra.isEmpty()) {
                     if (mazzo.carteRimanenti() == 0 && umano.getMano().isEmpty() && bot.getMano().isEmpty()) {
-                        System.out.println("Ultima mano, niente scopa!");
+                        visualizza("Ultima mano, niente scopa!");
                     } else {
                         giocatore.aggiungiScopa(cartaGiocata);
 

@@ -22,7 +22,7 @@ public class FinestraPrincipale extends JFrame {
 
         // Slider Volume
         JMenu menuVolume = new JMenu("Volume Musica");
-        JSlider sliderVolume = new JSlider(0, 100, 30);
+        JSlider sliderVolume = creaSliderVolume(60);
         sliderVolume.addChangeListener(e -> {
             float vol = sliderVolume.getValue() / 100f;
             GestoreAudio.impostaVolume(vol);
@@ -38,7 +38,7 @@ public class FinestraPrincipale extends JFrame {
 
         // Slider Volume Effetti
         JMenu menuVolumeEffetti = new JMenu("Volume Effetti");
-        JSlider sliderVolumeEffetti = new JSlider(0, 100, 100);
+        JSlider sliderVolumeEffetti = creaSliderVolume(100);
         sliderVolumeEffetti.addChangeListener(e ->
                 GestoreAudio.impostaVolumeEffetti(sliderVolumeEffetti.getValue() / 100f));
         menuVolumeEffetti.add(sliderVolumeEffetti);
@@ -117,5 +117,14 @@ public class FinestraPrincipale extends JFrame {
             FinestraPrincipale frame = new FinestraPrincipale();
             frame.setVisible(true);
         });
+    }
+
+    private static JSlider creaSliderVolume(int valoreIniziale) {
+        JSlider slider = new JSlider(0, 100, valoreIniziale);
+        slider.setMajorTickSpacing(25);
+        slider.setMinorTickSpacing(5);
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+        return slider;
     }
 }

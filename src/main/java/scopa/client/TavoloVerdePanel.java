@@ -15,8 +15,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TavoloVerdePanel extends JPanel {
+
+    private static final Logger LOG = Logger.getLogger(TavoloVerdePanel.class.getName());
 
     private final Map<String, BufferedImage> cacheImmagini = new HashMap<>();
 
@@ -100,7 +104,9 @@ public class TavoloVerdePanel extends JPanel {
             try {
                 InputStream is = getClass().getResourceAsStream("/carte/" + nomeImmagine);
                 if (is != null) cacheImmagini.put(nomeImmagine, ImageIO.read(is));
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) {
+                LOG.log(Level.WARNING, "Impossibile caricare l'immagine /carte/" + nomeImmagine, e);
+            }
         }
         return cacheImmagini.get(nomeImmagine);
     }

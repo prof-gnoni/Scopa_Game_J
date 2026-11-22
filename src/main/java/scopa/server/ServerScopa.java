@@ -3,24 +3,32 @@ package scopa.server;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ServerScopa {
+    private static final Logger LOG = Logger.getLogger(ServerScopa.class.getName());
     private static final int PORTA = 5555;
     private static final List<GestoreClient> inAttesa = new ArrayList<>();
 
     public static void main(String[] args) {
-        System.out.println("=== SERVER SCOPA AVVIATO SULLA PORTA " + PORTA + " ===");
+        visualizza("=== SERVER SCOPA AVVIATO SULLA PORTA " + PORTA + " ===");
         try (ServerSocket serverSocket = new ServerSocket(PORTA)) {
             while (true) {
                 Socket socket = serverSocket.accept();
-                System.out.println("Nuovo giocatore connesso da: " + socket.getInetAddress());
+                visualizza("Nuovo giocatore connesso da: " + socket.getInetAddress());
                 GestoreClient client = new GestoreClient(socket);
                 new Thread(client).start();
                 gestisciAccoppiamento(client);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "Errore del server sulla porta " + PORTA, e);
         }
+    }
+
+    // Unico metodo della classe che stampa su console
+    private static void visualizza(String messaggio) {
+        System.out.println(messaggio);
     }
 
     private static synchronized void gestisciAccoppiamento(GestoreClient client) {
@@ -37,6 +45,8 @@ public class ServerScopa {
 }
 
 class GestoreClient implements Runnable {
+    private static final Logger LOG = Logger.getLogger(GestoreClient.class.getName());
+
     private final Socket socket;
     private PrintWriter out;
     private BufferedReader in;
@@ -48,8 +58,13 @@ class GestoreClient implements Runnable {
             this.out = new PrintWriter(socket.getOutputStream(), true);
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.log(Level.WARNING, "Impossibile aprire i flussi per il client " + socket.getInetAddress(), e);
         }
+    }
+
+    // Unico metodo della classe che stampa su console
+    private void visualizza(String messaggio) {
+        System.out.println(messaggio);
     }
 
     public void setStanza(StanzaPartita stanza) {
@@ -70,7 +85,7 @@ class GestoreClient implements Runnable {
                 }
             }
         } catch (IOException e) {
-            System.out.println("Giocatore disconnesso.");
+            visualizza("Giocatore disconnesso.");
         } finally {
             if (stanza != null) stanza.gestisciDisconnessione(this);
         }
@@ -88,10 +103,15 @@ class StanzaPartita {
         p2.setStanza(this);
     }
 
+    // Unico metodo della classe che stampa su console
+    private void visualizza(String messaggio) {
+        System.out.println(messaggio);
+    }
+
     public void avvia() {
         p1.inviaMessaggio("START|1|Sei il Giocatore 1");
         p2.inviaMessaggio("START|2|Sei il Giocatore 2");
-        System.out.println("Nuova partita avviata tra due giocatori online!");
+        visualizza("Nuova partita avviata tra due giocatori online!");
     }
 
     public void riceviComando(GestoreClient mittente, String comando) {
