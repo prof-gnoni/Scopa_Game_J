@@ -55,19 +55,9 @@ public class PartitaLocale {
     }
 
     private List<Carta> faiScegliereAlGiocatore(List<List<Carta>> opzioni) {
-        String[] opzioniTesto = new String[opzioni.size()];
-        for (int i = 0; i < opzioni.size(); i++) {
-            List<Carta> opzione = opzioni.get(i);
-            StringBuilder sb = new StringBuilder();
-            for (Carta c : opzione) {
-                sb.append(c.getValore()).append(" di ").append(c.getSeme()).append(", ");
-            }
-            opzioniTesto[i] = sb.substring(0, sb.length() - 2);
-        }
-
-        int scelta = FinestraDialogo.scegliOpzione(vistaTavolo,
+        int scelta = FinestraDialogo.scegliPresa(vistaTavolo,
                 "Hai più possibilità di presa.\nQuali carte vuoi raccogliere?",
-                opzioniTesto);
+                opzioni);
 
         if (scelta >= 0) return opzioni.get(scelta);
         return null;

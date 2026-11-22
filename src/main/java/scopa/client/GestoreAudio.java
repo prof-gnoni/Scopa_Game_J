@@ -7,13 +7,14 @@ import java.io.BufferedInputStream;
 
 public class GestoreAudio {
     private static Clip bgmClip;
-    private static FloatControl bgmVolumeControl;
     private static boolean musicaAttiva = true;
-    private static float volumeMusica = 0.7f;
+    private static float volumeMusica = 0.3f;
 
     private static Clip dropClip;
     private static Clip presaClip;
     private static Clip shuffleClip;
+    private static boolean effettiAttivi = true;
+    private static float volumeEffetti = 1.0f;
 
     // Carica e mantiene in memoria il Clip
     private static Clip caricaSuono(String nomeFile) {
@@ -33,18 +34,52 @@ public class GestoreAudio {
 
     // Precaricamento all'avvio per evitare lag al click
     public static void inizializza() {
-        if (dropClip == null) dropClip = caricaSuono("drop.wav");
-        if (presaClip == null) presaClip = caricaSuono("presa.wav");
-        if (shuffleClip == null) shuffleClip = caricaSuono("shuffle.wav");
+        if (dropClip == null) dropClip = caricaEffetto("drop.wav");
+        if (presaClip == null) presaClip = caricaEffetto("presa.wav");
+        if (shuffleClip == null) shuffleClip = caricaEffetto("shuffle.wav");
+    }
+
+    private static Clip caricaEffetto(String nomeFile) {
+        Clip clip = caricaSuono(nomeFile);
+        applicaVolume(clip, volumeEffetti);
+        return clip;
+    }
+
+    public static void impostaEffettiAttivi(boolean attivi) {
+        effettiAttivi = attivi;
+        if (!effettiAttivi) {
+            fermaEffetto(dropClip);
+            fermaEffetto(presaClip);
+            fermaEffetto(shuffleClip);
+        }
+    }
+
+    public static void impostaVolumeEffetti(float volume) {
+        volumeEffetti = Math.max(0.0f, Math.min(1.0f, volume));
+        applicaVolume(dropClip, volumeEffetti);
+        applicaVolume(presaClip, volumeEffetti);
+        applicaVolume(shuffleClip, volumeEffetti);
+    }
+
+    // Scala logaritmica, uguale per musica ed effetti:
+    // 100% = volume originale del file (0 dB), 0% = silenzio
+    private static void applicaVolume(Clip clip, float volume) {
+        if (clip == null || !clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) return;
+        FloatControl gain = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+        float db = volume <= 0.0f
+                ? gain.getMinimum()
+                : (float) (20.0 * Math.log10(volume));
+        gain.setValue(Math.max(gain.getMinimum(), Math.min(gain.getMaximum(), db)));
+    }
+
+    private static void fermaEffetto(Clip clip) {
+        if (clip != null && clip.isRunning()) clip.stop();
     }
 
     public static void avviaMusicaSottofondo() {
         if (bgmClip == null) {
             bgmClip = caricaSuono("bgm.wav");
-            if (bgmClip != null) {
-                bgmVolumeControl = (FloatControl) bgmClip.getControl(FloatControl.Type.MASTER_GAIN);
-                aggiornaVolume();
-            }
+            applicaVolume(bgmClip, volumeMusica);
         }
         if (bgmClip != null && musicaAttiva) {
             bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
@@ -64,19 +99,12 @@ public class GestoreAudio {
 
     public static void impostaVolume(float volume) {
         volumeMusica = Math.max(0.0f, Math.min(1.0f, volume));
-        aggiornaVolume();
-    }
-
-    private static void aggiornaVolume() {
-        if (bgmVolumeControl != null) {
-            float range = bgmVolumeControl.getMaximum() - bgmVolumeControl.getMinimum();
-            float gain = (range * volumeMusica) + bgmVolumeControl.getMinimum();
-            bgmVolumeControl.setValue(gain);
-        }
+        applicaVolume(bgmClip, volumeMusica);
     }
 
     public static void suonaShuffle(long durataMillisecondi) {
-        if (shuffleClip == null) shuffleClip = caricaSuono("shuffle.wav");
+        if (!effettiAttivi) return;
+        if (shuffleClip == null) shuffleClip = caricaEffetto("shuffle.wav");
         if (shuffleClip != null) {
             shuffleClip.stop();
             shuffleClip.setFramePosition(0);
@@ -93,18 +121,18 @@ public class GestoreAudio {
     }
 
     public static void suonaCartaGiocata() {
-        riproduciIstantaneo(dropClip, "drop.wav");
+        if (dropClip == null) dropClip = caricaEffetto("drop.wav");
+        riproduciIstantaneo(dropClip);
     }
 
     public static void suonaPresa() {
-        riproduciIstantaneo(presaClip, "presa.wav");
+        if (presaClip == null) presaClip = caricaEffetto("presa.wav");
+        riproduciIstantaneo(presaClip);
     }
 
-    private static void riproduciIstantaneo(Clip clip, String nomeFile) {
+    private static void riproduciIstantaneo(Clip clip) {
+        if (!effettiAttivi) return;
         try {
-            if (clip == null) {
-                clip = caricaSuono(nomeFile);
-            }
             if (clip != null) {
                 if (clip.isRunning()) {
                     clip.stop();

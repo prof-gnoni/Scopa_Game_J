@@ -22,7 +22,7 @@ public class FinestraPrincipale extends JFrame {
 
         // Slider Volume
         JMenu menuVolume = new JMenu("Volume Musica");
-        JSlider sliderVolume = new JSlider(0, 100, 70);
+        JSlider sliderVolume = new JSlider(0, 100, 30);
         sliderVolume.addChangeListener(e -> {
             float vol = sliderVolume.getValue() / 100f;
             GestoreAudio.impostaVolume(vol);
@@ -31,6 +31,21 @@ public class FinestraPrincipale extends JFrame {
 
         menuAudio.add(cbMusica);
         menuAudio.add(menuVolume);
+
+        // Spunta On/Off Effetti Sonori
+        JCheckBoxMenuItem cbEffetti = new JCheckBoxMenuItem("Effetti Sonori", true);
+        cbEffetti.addActionListener(e -> GestoreAudio.impostaEffettiAttivi(cbEffetti.isSelected()));
+
+        // Slider Volume Effetti
+        JMenu menuVolumeEffetti = new JMenu("Volume Effetti");
+        JSlider sliderVolumeEffetti = new JSlider(0, 100, 100);
+        sliderVolumeEffetti.addChangeListener(e ->
+                GestoreAudio.impostaVolumeEffetti(sliderVolumeEffetti.getValue() / 100f));
+        menuVolumeEffetti.add(sliderVolumeEffetti);
+
+        menuAudio.addSeparator();
+        menuAudio.add(cbEffetti);
+        menuAudio.add(menuVolumeEffetti);
         menuBar.add(menuAudio);
         setJMenuBar(menuBar);
 

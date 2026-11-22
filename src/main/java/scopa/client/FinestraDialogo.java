@@ -18,6 +18,8 @@ import java.util.Map;
 public class FinestraDialogo {
 
     private static final Map<String, ImageIcon> cacheIcone = new HashMap<>();
+    private static final int LARGHEZZA_MINIATURA_PRESA = 72;
+    private static final int ALTEZZA_MINIATURA_PRESA = 112;
 
     public static void mostraMessaggio(Component parent, String messaggio) {
         JDialog dialog = creaDialogBase(parent);
@@ -60,6 +62,57 @@ public class FinestraDialogo {
         dialog.add(panelBottoni, BorderLayout.SOUTH);
         mostra(dialog);
         return risultato[0];
+    }
+
+    public static int scegliPresa(Component parent, String messaggio, List<List<Carta>> opzioni) {
+        JDialog dialog = creaDialogBase(parent);
+        dialog.add(creaPannelloTesto(messaggio), BorderLayout.CENTER);
+        final int[] risultato = {-1};
+        JPanel panelBottoni = new JPanel(new GridLayout(opzioni.size(), 1, 0, 10));
+        panelBottoni.setBorder(BorderFactory.createEmptyBorder(10, 30, 20, 30));
+        panelBottoni.setOpaque(false);
+        for (int i = 0; i < opzioni.size(); i++) {
+            final int index = i;
+            JButton btn = creaBottoneCarte(opzioni.get(i));
+            btn.addActionListener(e -> { risultato[0] = index; dialog.dispose(); });
+            panelBottoni.add(btn);
+        }
+        dialog.add(panelBottoni, BorderLayout.SOUTH);
+        mostra(dialog);
+        return risultato[0];
+    }
+
+    private static JButton creaBottoneCarte(List<Carta> carte) {
+        final Color sfondo = new Color(34, 139, 34);
+        final Color sfondoHover = new Color(46, 170, 46);
+        JButton btn = new JButton();
+        btn.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 0));
+        btn.setBackground(sfondo);
+        btn.setOpaque(true);
+        btn.setContentAreaFilled(true);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(218, 165, 32), 2),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        StringBuilder descrizione = new StringBuilder();
+        for (Carta c : carte) {
+            ImageIcon icon = getIconaCarta(c, LARGHEZZA_MINIATURA_PRESA, ALTEZZA_MINIATURA_PRESA);
+            JLabel lbl = icon != null ? new JLabel(icon) : new JLabel(c.toString());
+            lbl.setForeground(Color.WHITE);
+            btn.add(lbl);
+            if (descrizione.length() > 0) descrizione.append(", ");
+            descrizione.append(c);
+        }
+        btn.setToolTipText(descrizione.toString());
+        btn.getAccessibleContext().setAccessibleName(descrizione.toString());
+        btn.setPreferredSize(new Dimension(btn.getPreferredSize().width, ALTEZZA_MINIATURA_PRESA + 16 + 4));
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) { btn.setBackground(sfondoHover); }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) { btn.setBackground(sfondo); }
+        });
+        return btn;
     }
 
     public static boolean mostraDomanda(Component parent, String messaggio) {
@@ -206,7 +259,7 @@ public class FinestraDialogo {
 
             for (int i = 0; i < carte.size(); i++) {
                 int x = startX + (i * gap);
-                ImageIcon icon = getIconaCarta(carte.get(i));
+                ImageIcon icon = getIconaCarta(carte.get(i), 45, 70);
                 if (icon != null) {
                     icon.paintIcon(this, g, x, 2);
                 }
@@ -214,26 +267,27 @@ public class FinestraDialogo {
         }
     }
 
-    private static ImageIcon getIconaCarta(Carta c) {
-        if (cacheIcone.containsKey(c.getNomeImmagine())) return cacheIcone.get(c.getNomeImmagine());
+    private static ImageIcon getIconaCarta(Carta c, int w, int h) {
+        String chiave = c.getNomeImmagine() + "@" + w + "x" + h;
+        if (cacheIcone.containsKey(chiave)) return cacheIcone.get(chiave);
         try {
             java.io.InputStream is = FinestraDialogo.class.getResourceAsStream("/carte/" + c.getNomeImmagine());
             if (is != null) {
                 BufferedImage img = javax.imageio.ImageIO.read(is);
-                Image scaled = img.getScaledInstance(45, 70, Image.SCALE_SMOOTH);
+                Image scaled = img.getScaledInstance(w, h, Image.SCALE_SMOOTH);
 
-                BufferedImage rounded = new BufferedImage(45, 70, BufferedImage.TYPE_INT_ARGB);
+                BufferedImage rounded = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D g2 = rounded.createGraphics();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, 45, 70, 8, 8));
+                g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, 10, 10));
                 g2.drawImage(scaled, 0, 0, null);
                 g2.setClip(null);
                 g2.setColor(new Color(0, 0, 0, 100));
-                g2.drawRoundRect(0, 0, 44, 69, 8, 8);
+                g2.drawRoundRect(0, 0, w - 1, h - 1, 10, 10);
                 g2.dispose();
 
                 ImageIcon icon = new ImageIcon(rounded);
-                cacheIcone.put(c.getNomeImmagine(), icon);
+                cacheIcone.put(chiave, icon);
                 return icon;
             }
         } catch (Exception e) {}
