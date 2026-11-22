@@ -24,6 +24,15 @@ public class TavoloVerdePanel extends JPanel {
 
     private final Map<String, BufferedImage> cacheImmagini = new HashMap<>();
 
+    // Sfondo del tavolo: caricato una volta, poi tenuto già scalato alla dimensione del pannello
+    // Distanza dal bordo sinistro dei mazzetti delle prese
+    private static final int MARGINE_PRESE = 40;
+
+    private static final String SFONDO = "/sfondi/tavolo_quadrifogli.jpg";
+    private BufferedImage sfondoOriginale;
+    private boolean sfondoCaricato = false;
+    private BufferedImage sfondoScalato;
+
     private List<Carta> carteTavolo = new ArrayList<>();
     private List<Carta> manoGiocatore = new ArrayList<>();
 
@@ -127,6 +136,55 @@ public class TavoloVerdePanel extends JPanel {
         g2d.draw(cartaShape);
     }
 
+    private void disegnaSfondo(Graphics2D g2d, int width, int height) {
+        BufferedImage sfondo = getSfondoScalato(width, height);
+        if (sfondo != null) {
+            g2d.drawImage(sfondo, 0, 0, null);
+            return;
+        }
+
+        // Se l'immagine manca: sfumatura verde pastello
+        Point2D center = new Point2D.Float(width / 2.0f, height / 2.0f);
+        float radius = Math.max(width, height);
+        float[] dist = {0.0f, 1.0f};
+        Color[] colors = {new Color(146, 210, 147), new Color(85, 160, 85)};
+        g2d.setPaint(new RadialGradientPaint(center, radius, dist, colors));
+        g2d.fillRect(0, 0, width, height);
+    }
+
+    // Scala l'immagine per coprire tutto il pannello (tagliando i bordi in eccesso)
+    // e la ricalcola solo quando cambia la dimensione della finestra
+    private BufferedImage getSfondoScalato(int width, int height) {
+        if (width <= 0 || height <= 0) return null;
+        if (!sfondoCaricato) {
+            sfondoCaricato = true;
+            try (InputStream is = getClass().getResourceAsStream(SFONDO)) {
+                if (is != null) sfondoOriginale = ImageIO.read(is);
+            } catch (Exception e) {
+                LOG.log(Level.WARNING, "Impossibile caricare lo sfondo " + SFONDO, e);
+            }
+        }
+        if (sfondoOriginale == null) return null;
+        if (sfondoScalato != null && sfondoScalato.getWidth() == width && sfondoScalato.getHeight() == height) {
+            return sfondoScalato;
+        }
+
+        double scala = Math.max((double) width / sfondoOriginale.getWidth(),
+                (double) height / sfondoOriginale.getHeight());
+        int w = (int) Math.ceil(sfondoOriginale.getWidth() * scala);
+        int h = (int) Math.ceil(sfondoOriginale.getHeight() * scala);
+
+        BufferedImage risultato = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = risultato.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g.drawImage(sfondoOriginale, (width - w) / 2, (height - h) / 2, w, h, null);
+        g.dispose();
+
+        sfondoScalato = risultato;
+        return sfondoScalato;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -137,16 +195,7 @@ public class TavoloVerdePanel extends JPanel {
         int width = getWidth();
         int height = getHeight();
 
-        Point2D center = new Point2D.Float(width / 2.0f, height / 2.0f);
-        float radius = Math.max(width, height);
-        float[] dist = {0.0f, 1.0f};
-
-        // --- MODIFICA EFFETTUATA QUI: Colori resi "verde pastello rilassante" (basato su ricerca scientifica) ---
-        Color[] colors = {new Color(146, 210, 147), new Color(85, 160, 85)};
-
-        RadialGradientPaint p = new RadialGradientPaint(center, radius, dist, colors);
-        g2d.setPaint(p);
-        g2d.fillRect(0, 0, width, height);
+        disegnaSfondo(g2d, width, height);
 
         int altezzaCarta = getHeight() / 4;
         int larghezzaCarta = (int) (altezzaCarta * 0.66);
@@ -154,7 +203,6 @@ public class TavoloVerdePanel extends JPanel {
         int spazioVuotoTotale = height - (3 * altezzaCarta);
         int gapY = spazioVuotoTotale / 4;
 
-        int yAvversario = gapY;
         int yTavolo = (gapY * 2) + altezzaCarta;
         int yMano = (gapY * 3) + (altezzaCarta * 2);
 
@@ -217,7 +265,7 @@ public class TavoloVerdePanel extends JPanel {
 
             for (int i = 0; i < numeroCarteAvversario; i++) {
                 int x = startXAvversario + (i * (larghezzaCarta + gapStandard));
-                disegnaCartaArrotondata(g2d, imgRetro, x, yAvversario, larghezzaCarta, altezzaCarta);
+                disegnaCartaArrotondata(g2d, imgRetro, x, gapY, larghezzaCarta, altezzaCarta); // riga dell'avversario
             }
 
             if (carteRimanentiMazzo > 0) {
@@ -231,12 +279,12 @@ public class TavoloVerdePanel extends JPanel {
                 g2d.drawString(testoMazzo, testoX, yTavolo - 10);
             }
 
-            disegnaMazzettoPrese(g2d, 40, yAvversario, larghezzaCarta, altezzaCarta, preseBot, scopeBot, imgRetro);
-            disegnaMazzettoPrese(g2d, 40, yMano, larghezzaCarta, altezzaCarta, preseUmano, scopeUmano, imgRetro);
+            disegnaMazzettoPrese(g2d, gapY, larghezzaCarta, altezzaCarta, preseBot, scopeBot, imgRetro);
+            disegnaMazzettoPrese(g2d, yMano, larghezzaCarta, altezzaCarta, preseUmano, scopeUmano, imgRetro);
         }
     }
 
-    private void disegnaMazzettoPrese(Graphics2D g2d, int startX, int startY, int larghezzaCarta, int altezzaCarta, int numPrese, List<Carta> scope, BufferedImage imgRetro) {
+    private void disegnaMazzettoPrese(Graphics2D g2d, int startY, int larghezzaCarta, int altezzaCarta, int numPrese, List<Carta> scope, BufferedImage imgRetro) {
         if (numPrese == 0) return;
 
         double percentualeSpuntare = 0.40;
@@ -246,17 +294,17 @@ public class TavoloVerdePanel extends JPanel {
             Carta c = scope.get(i);
             BufferedImage img = getImmagineCarta(c.getNomeImmagine());
             if (img != null) {
-                int xScopa = startX + (stepSpuntare * (i + 1));
+                int xScopa = MARGINE_PRESE + (stepSpuntare * (i + 1));
                 disegnaCartaArrotondata(g2d, img, xScopa, startY, larghezzaCarta, altezzaCarta);
             }
         }
 
-        disegnaCartaArrotondata(g2d, imgRetro, startX, startY, larghezzaCarta, altezzaCarta);
+        disegnaCartaArrotondata(g2d, imgRetro, MARGINE_PRESE, startY, larghezzaCarta, altezzaCarta);
 
         g2d.setColor(Color.WHITE);
         g2d.setFont(new Font("Arial", Font.BOLD, 16));
         String testo = numPrese + " prese";
         FontMetrics fm = g2d.getFontMetrics();
-        g2d.drawString(testo, startX + (larghezzaCarta - fm.stringWidth(testo)) / 2, startY - 10);
+        g2d.drawString(testo, MARGINE_PRESE + (larghezzaCarta - fm.stringWidth(testo)) / 2, startY - 10);
     }
 }
