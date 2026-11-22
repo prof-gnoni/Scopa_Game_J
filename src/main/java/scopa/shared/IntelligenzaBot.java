@@ -150,6 +150,6 @@ public class IntelligenzaBot {
     }
 
     private static void rimuoviDaListaMentale(List<Carta> lista, Carta daRimuovere) {
-        lista.removeIf(c -> c.getValore() == daRimuovere.getValore() && c.getSeme() == daRimuovere.getSeme());
+        lista.remove(daRimuovere);
     }
 }

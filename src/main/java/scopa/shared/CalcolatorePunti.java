@@ -24,7 +24,8 @@ public class CalcolatorePunti {
             puntiManoBot++;
             report.append("Carte (").append(bot.getPrese().size()).append("): +1 al Computer\n");
         } else {
-            report.append("Carte: Patta (20 a 20)\n");
+            report.append("Carte: Patta (").append(umano.getPrese().size())
+                    .append(" a ").append(bot.getPrese().size()).append(")\n");
         }
 
         int denariUmano = contaDenari(umano.getPrese());
@@ -42,9 +43,12 @@ public class CalcolatorePunti {
         if (haSettebello(umano.getPrese())) {
             puntiManoUmano++;
             report.append("Settebello: +1 a Te\n");
-        } else {
+        } else if (haSettebello(bot.getPrese())) {
             puntiManoBot++;
             report.append("Settebello: +1 al Computer\n");
+        } else {
+            // Nessuno lo ha preso (es. rimasto a terra senza un ultimo a prendere)
+            report.append("Settebello: non assegnato\n");
         }
 
         int primieraUmano = calcolaValorePrimiera(umano.getPrese());
